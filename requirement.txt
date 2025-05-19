@@ -1,0 +1,7 @@
+requests~=2.31
+beautifulsoup4~=4.12
+pandas~=2.2
+gspread~=5.12
+gspread_dataframe==3.3.1  # Ubah versi di sini
+pytest~=7.0
+pytest-cov~=6.0
