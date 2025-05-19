@@ -18,6 +18,7 @@ def fetch_products(pages=50):
                 colors = card.select("div.product-details p")[1].get_text(strip=True)
                 size = card.select("div.product-details p")[2].get_text(strip=True)
                 gender = card.select("div.product-details p")[3].get_text(strip=True)
+                image_url = card.select_one("img.collection-image")['src']
                 all_products.append({
                     "title": title,
                     "price": price,
@@ -25,6 +26,7 @@ def fetch_products(pages=50):
                     "colors": colors,
                     "size": size,
                     "gender": gender,
+                    "image_url": image_url,
                     "timestamp": datetime.utcnow().isoformat()
                 })
             except:
