@@ -1,6 +1,6 @@
-from utils.utils_extract import fetch_products
-from utils.utils_transform import process_data
-from utils.utils_load import save_to_csv, save_to_google_sheets
+from utils.extract import fetch_products
+from utils.transform import process_data
+from utils.load import save_to_csv, save_to_google_sheets
 
 
 def main():
