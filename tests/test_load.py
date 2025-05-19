@@ -1,24 +1,28 @@
 import pytest
 import pandas as pd
-from utils.transform import transform_data
+from unittest.mock import patch, MagicMock
+from utils.load import save_csv, save_to_google_sheets
 
-def test_transform_data():
-    data = {
-        'price': ['$100', '$200', 'N/A', None],
-        'rating': ['⭐ 4.5 / 5', '⭐ 3.8 / 5', 'N/A', None],
-        'colors': ['Red Blue', 'Green', None, 'Yellow Black'],
-        'size': ['Size: M', 'Size: L', 'Size: S', None],
-        'gender': ['Gender: Men', 'Gender: Women', None, 'Gender: Unisex'],
-        'title': ['Product 1', 'Product 2', 'Product 3', 'Product 4']
-    }
-    df = pd.DataFrame(data)
-    df_transformed = transform_data(df)
-    # Pastikan 'price' sudah jadi numeric
-    assert pd.api.types.is_numeric_dtype(df_transformed['price'])
-    # Pastikan 'rating' sudah float
-    assert all(isinstance(r, float) or pd.isna(r) for r in df_transformed['rating'])
-    # Pastikan 'colors' dihitung jumlah warnanya
-    assert all(isinstance(c, int) for c in df_transformed['colors'])
-    # Pastikan 'size' dan 'gender' bersih dari teks
-    assert all(isinstance(s, str) for s in df_transformed['size'])
-    assert all(isinstance(g, str) for g in df_transformed['gender'])
+def test_save_csv():
+    df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+    filename = 'test_output.csv'
+    save_csv(df, filename)
+    # Cek file dibuat dan isinya
+    df_loaded = pd.read_csv(filename)
+    assert list(df_loaded.columns) == ['a', 'b']
+    assert len(df_loaded) == 2
+
+@patch('gspread.service_account')
+def test_save_to_google_sheets(mock_service_account):
+    mock_gc = MagicMock()
+    mock_sheet = MagicMock()
+    mock_worksheet = MagicMock()
+    mock_service_account.return_value = mock_gc
+    mock_gc.open_by_url.return_value = mock_sheet
+    mock_sheet.get_worksheet.return_value = mock_worksheet
+
+    df = pd.DataFrame({'a': [1], 'b': [2]})
+    save_to_google_sheets(df, 'dummy.json', 'https://dummyurl')
+    mock_gc.open_by_url.assert_called_once()
+    mock_sheet.get_worksheet.assert_called_once()
+    mock_worksheet.clear.assert_called_once()
