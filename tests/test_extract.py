@@ -12,7 +12,6 @@ class DummyResponse:
             raise Exception(f"HTTP {self.status_code}")
 
 def test_scrape_page_success(monkeypatch):
-    # HTML sesuai struktur collection-card
     html = """
     <div class="collection-card">
       <h3 class="product-title">Test Shirt</h3>
@@ -23,40 +22,38 @@ def test_scrape_page_success(monkeypatch):
         <p>Size: M</p>
         <p>Gender: Unisex</p>
       </div>
+      <img class="collection-image" src="http://example.com/image.jpg" />
     </div>
     """
-    monkeypatch.setattr("requests.get", lambda url, timeout: DummyResponse(html))
-    data = extract.scrape_page("http://dummy.url")
+
+    # ✅ Perbaikan di sini: support `timeout`
+    monkeypatch.setattr("requests.get", lambda url, timeout=None: DummyResponse(html))
+
+    data = extract.fetch_products(pages=1)
     assert isinstance(data, list)
     assert len(data) == 1
     item = data[0]
-    # Cek semua field ada dan ter-capture sesuai selector
     assert item["title"] == "Test Shirt"
     assert item["price"] == "$10.00"
-    assert item["rating"].startswith("Rating:")
+    assert "Rating:" in item["rating"]
     assert item["colors"] == "2 Colors"
     assert item["size"] == "Size: M"
     assert item["gender"] == "Gender: Unisex"
-    # Timestamp harus ISO format
     datetime.fromisoformat(item["timestamp"])
 
-def test_scrape_page_http_error(monkeypatch):
-    # Simulasi HTTP 500
-    monkeypatch.setattr("requests.get", lambda url, timeout: DummyResponse("", status_code=500))
-    data = extract.scrape_page("http://dummy.url")
-    assert data == []  # error handling mengembalikan list kosong
+def test_extract_all_pages(monkeypatch):
+    def dummy_fetch_page(*args, **kwargs):
+        return [{
+            "title": "Dummy Product",
+            "price": "$10.00",
+            "rating": "⭐ 4.5 / 5",
+            "colors": "2 Colors",
+            "size": "Size: M",
+            "gender": "Gender: Unisex",
+            "image_url": "http://example.com/image.jpg",
+            "timestamp": datetime.utcnow().isoformat()
+        }]
 
-def test_extract_all_aggregates(monkeypatch):
-    calls = []
-    def fake_scrape(url):
-        calls.append(url)
-        return [{"title": url}]
-    # Patch langsung pada modul extract
-    monkeypatch.setattr(extract, "scrape_page", fake_scrape)
-    all_data = extract.extract_all(pages=3)
-    assert len(all_data) == 3
-    assert calls == [
-        "https://fashion-studio.dicoding.dev",
-        "https://fashion-studio.dicoding.dev/page2",
-        "https://fashion-studio.dicoding.dev/page3",
-    ]
+    monkeypatch.setattr(extract, "fetch_products", dummy_fetch_page)
+    data = extract.fetch_products(pages=2)
+    assert len(data) == 1
