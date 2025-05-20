@@ -8,8 +8,14 @@ def fetch_products(pages=50):
 
     for page in range(1, pages + 1):
         url = base_url if page == 1 else f"{base_url}/page{page}"
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, "html.parser")
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+        except Exception as e:
+            print(f"[ERROR] Gagal mengambil halaman {url}: {e}")
+            continue
+
         for card in soup.select("div.collection-card"):
             try:
                 title = card.select_one("h3.product-title").get_text(strip=True)
@@ -29,6 +35,7 @@ def fetch_products(pages=50):
                     "image_url": image_url,
                     "timestamp": datetime.utcnow().isoformat()
                 })
-            except:
+            except Exception as e:
+                print(f"[ERROR] Gagal memproses produk pada halaman {page}: {e}")
                 continue
     return all_products
